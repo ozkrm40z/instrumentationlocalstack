@@ -1,0 +1,56 @@
+version : '3'
+
+networks:
+ loki:
+  external: true
+
+services:
+ loki:
+  image: grafana/loki:master
+  container_name: loki
+  restart: always
+  ports:
+   - 3100:3100
+  volumes:
+   - .\loki\loki-config.yaml:/etc/config/loki.yaml
+  entrypoint:
+   - /usr/bin/loki
+   - -config.file=/etc/config/loki.yaml
+  networks:
+   - loki
+
+ prometheus:
+  image: prom/prometheus
+  container_name: prometheus
+  environment:
+  - COMPOSE_CONVERT_WINDOWS_PATHS=true
+  restart: always
+  ports:
+   - 9090:9090
+  volumes:
+   - .\prometheus\prometheus-config.yml:/etc/prometheus/prometheus.yml:ro
+  networks:
+   - loki
+
+ grafana:
+  image: grafana/grafana
+  container_name: grafanaui
+  environment:
+   - GF_SECURITY_ADMIN_PASSWORD=Password
+  restart: always
+  ports:
+   - 3000:3000
+  networks:
+   - loki
+  depends_on:
+   - prometheus
+
+ renderer:
+  image: grafana/grafana-image-renderer:2.0.0
+  container_name: grafana-image-renderer
+  expose:
+   - "8081"
+  environment:
+   ENABLE_METRICS: "true"
+  networks:
+   - loki
